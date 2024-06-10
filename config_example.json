@@ -1,0 +1,13 @@
+{
+    "homeserver": "https://matrix.org",
+    "userId": "mybot",
+    "password": "1234",
+    "roomId": "!myroom:matrix.org",
+    "encrypt": false,
+    "custom": {
+        "My": [
+            "custom",
+            "data"
+        ]
+    }
+}
