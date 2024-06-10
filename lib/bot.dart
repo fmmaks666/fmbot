@@ -1,5 +1,5 @@
 import 'package:matrix/matrix.dart' show User;
-import 'package:bot/client.dart' show BotClient;
+import 'package:bot/client.dart' show AccessLevel, BotClient;
 import 'package:bot/lights.dart' show Outage, EnergyParser;
 import 'package:bot/weather.dart' show getWeatherInfo, formatWeather;
 
@@ -26,6 +26,28 @@ String getNews() {
 const String aboutMessage = """
 fmBot v0.3
 Created by fmmaks, thefoxcry
+""";
+
+const String rulesMessage = """
+Павила! 
+Правило №1:
+  Не спамити. 
+Правило №2:
+  Не присилати 18+ контент. 
+Правило №3: 
+  Не ображати одне одного. 
+Правило №4:
+  Не приглашати людей без попередження адміна. 
+Правило №5:
+  За прославлення Корпорацій як Google, Microsoft, Apple - БАН. 
+Правило №6:
+  Не використовувати своє обличчя на аватарці. 
+Правило №7: 
+  Не просити зробити вас адміном чи модератором.
+Created by 2becool, Edited by fmmaks.
+Дякую що прочитали (дотримуйтеся правил!).
+Щоб отримувати бонуси від Адміністраторів Вам потрібно приводити нових користувачів у групу. 
+* Admins can ban You without leading on ban reason, but if got Banned you 100% broke rule(s) *
 """;
 
 Future<BotClient> getClient() async {
@@ -135,8 +157,31 @@ Future<BotClient> getClient() async {
         return;
       }
       var room = client.getRoomById(client.roomId);
-      room.unban(args[0]);
+      await room?.unban(args[0]);
     },
+    requiredAccess: AccessLevel.admin,
+  );
+  client.addCommand(
+    name: "rules", 
+    implementation: (List<String> args) async {
+      await client.sendNotice(rulesMessage);
+    }
+  );
+  client.addCommand(
+    name: "group", 
+    implementation: (List<String> args) async {
+      var room = client.getRoomById(client.roomId);
+      var users = room?.getParticipants();
+      for (var i = 0; i < users!.length; i++) {
+        final access = switch (users[i].powerLevel) {
+          100 => AccessLevel.admin,
+          50 => AccessLevel.moderator,
+          0 => AccessLevel.user,
+          _ => AccessLevel.user,
+        };
+        await client.sendNotice("${users[i].displayName} (${users[i].id}) - $access");
+      }
+    }
   );
   return client;
 }
