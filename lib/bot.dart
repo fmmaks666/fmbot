@@ -70,6 +70,8 @@ Future<BotClient> getClient() async {
   !about -- Я відправлю інформацію про моїх авторів
   !neko -- Я відправлю зображення Neko
   !unban (UserID) -- Я розбаню зазначеного користувача
+  !users -- Я відправлю список користувачів нашої кімнати
+  !rules -- Я Нагадаю правила кімнати
   """;
   client.addCommand(
       name: "help",
@@ -129,9 +131,24 @@ Future<BotClient> getClient() async {
         }
         var choices = ["Ножиці", "Камінь", "Папір"];
         choices.shuffle();
+        Future<void> message(String status) async =>
+            await client.sendNotice("Я $status");
         var me = choices[0];
         var you = args[0];
-        switch ([me, you]) {
+        await client.sendNotice("Я вибрала $me");
+        switch ([me.toLowerCase(), you.toLowerCase()]) {
+          case ["ножиці", "папір"]:
+            await message("виграла!");
+          case ["папір", "камінь"]:
+            await message("виграла!");
+          case ["камінь", "ножиці"]:
+            await message("виграла!");
+          case ["папір", "ножиці"]:
+            await message("програла :(");
+          case ["камінь", "папір"]:
+            await message("програла :(");
+          case ["ножиці", "камінь"]:
+            await message("програла :(");
           case [var mine, var yours] when mine == yours:
             await client.sendNotice("Ніхто не виграв");
           default:
@@ -169,39 +186,41 @@ Future<BotClient> getClient() async {
       });
   // Usage: unban (userId)
   client.addCommand(
-    name: "unban",
-    implementation: (List<String> args) async {
-      if (args.isEmpty) {
-        await client.sendNotice("Вкажи кого розбанити.");
-        return;
-      }
-      var room = client.getRoomById(client.roomId);
-      await room?.unban(args[0]);
-    },
-    requiredAccess: AccessLevel.admin
-  );
+      name: "unban",
+      implementation: (List<String> args) async {
+        if (args.isEmpty) {
+          await client.sendNotice("Вкажи кого розбанити.");
+          return;
+        }
+        var room = client.getRoomById(client.roomId);
+        await room?.unban(args[0]);
+      },
+      requiredAccess: AccessLevel.admin);
   client.addCommand(
-    name: "rules", 
-    implementation: (List<String> args) async {
-      await client.sendNotice(rulesMessage);
-    }
-  );
+      name: "rules",
+      implementation: (List<String> args) async {
+        await client.sendNotice(rulesMessage);
+      });
   client.addCommand(
-    name: "group", 
-    implementation: (List<String> args) async {
-      var room = client.getRoomById(client.roomId);
-      var users = room?.getParticipants();
-      for (var i = 0; i < users!.length; i++) {
-        final access = switch (users[i].powerLevel) {
-          100 => AccessLevel.admin,
-          50 => AccessLevel.moderator,
-          0 => AccessLevel.user,
-          _ => AccessLevel.user,
-        };
-        await client.sendNotice("${users[i].displayName} (${users[i].id}) - $access");
-      }
-    }
-  );
+      name: "users",
+      implementation: (List<String> args) async {
+        var room = client.getRoomById(client.roomId);
+        if (room == null) return;
+        // var users = await room.requestParticipants();
+        var users = await room.loadHeroUsers();
+        StringBuffer buffer = StringBuffer();
+        buffer.writeln("=== Список Користувачів ===");
+        for (var user in users) {
+          final access = switch (user.powerLevel) {
+            100 => AccessLevel.admin,
+            50 => AccessLevel.moderator,
+            0 => AccessLevel.user,
+            _ => AccessLevel.user,
+          };
+          buffer.writeln("${user.displayName} (${user.id}) - $access");
+        }
+        await client.sendNotice(buffer.toString());
+      });
   return client;
 }
 
