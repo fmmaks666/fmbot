@@ -126,7 +126,18 @@ Future<BotClient> getClient() async {
       implementation: (List<String> args) async {
         await client.sendNotice(aboutMessage);
       });
-
+  // Usage: unban (userId)
+  client.addCommand(
+    name: "unban",
+    implementation: (List<String> args) async {
+      if (args.isEmpty) {
+        await client.sendNotice("Вкажи кого розбанити.");
+        return;
+      }
+      var room = client.getRoomById(client.roomId);
+      room.unban(args[0]);
+    },
+  );
   return client;
 }
 
