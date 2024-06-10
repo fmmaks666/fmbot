@@ -1,5 +1,5 @@
 import 'package:matrix/matrix.dart' show User;
-import 'package:bot/client.dart' show BotClient;
+import 'package:bot/client.dart' show BotClient, AccessLevel;
 import 'package:bot/lights.dart' show Outage, EnergyParser;
 import 'package:bot/weather.dart' show getWeatherInfo, formatWeather;
 
@@ -39,11 +39,12 @@ Future<BotClient> getClient() async {
   !help -- Отримати цей список
   !echo (Текст) -- Я віправлю зазначений текст
   !news -- Я відправлю новини кімнати, якщо є
-  !choice (Варіанти, ...) -- Я виберу випадковий варіант
+  !choice (Варіанти ...) -- Я виберу випадковий варіант
   !rps (Камінь | Ножиці | Папір) -- Я пограю в Камінь, Ножиці, Папір із тобою
   !light -- Я знайду і відправлю інформацію про відключення світла (WIP)
   !weather -- Я знайду погоду на сьогодні і завтра (WIP)
   !about -- Я відправлю інформацію про моїх авторів
+  !unban (UserID) -- Я розбаню зазначеного користувача
   """;
   client.addCommand(
       name: "help",
@@ -135,8 +136,9 @@ Future<BotClient> getClient() async {
         return;
       }
       var room = client.getRoomById(client.roomId);
-      room.unban(args[0]);
+      await room?.unban(args[0]);
     },
+    requiredAccess: AccessLevel.admin,
   );
   return client;
 }
