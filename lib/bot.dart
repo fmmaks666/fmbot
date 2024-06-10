@@ -1,5 +1,5 @@
 import 'package:matrix/matrix.dart' show User;
-import 'package:bot/client.dart' show AccessLevel, BotClient;
+import 'package:bot/client.dart' show BotClient, AccessLevel;
 import 'package:bot/lights.dart' show Outage, EnergyParser;
 import 'package:bot/weather.dart' show getWeatherInfo, formatWeather;
 
