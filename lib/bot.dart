@@ -5,11 +5,6 @@ import 'package:bot/weather.dart' show getWeatherInfo, formatWeather;
 
 import 'dart:io' show ProcessSignal, exit;
 
-final Map<String, Uri> lightUrls = {
-  "fmmaks": Uri.parse("https://zakarpat.energy-ua.info/grafik/Хуст/Садова/45"),
-  "2beCool": Uri.parse(
-      "https://zakarpat.energy-ua.info/grafik/Чертіж/Червоногірська/28")
-};
 final eParser = EnergyParser();
 
 String getNews() {
