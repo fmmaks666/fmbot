@@ -1,11 +1,13 @@
 import 'package:matrix/matrix.dart' show User;
 import 'package:bot/client.dart' show BotClient, AccessLevel;
 import 'package:bot/lights.dart' show Outage, EnergyParser;
+import 'package:bot/neko_images.dart' show NekoFetcher;
 import 'package:bot/weather.dart' show getWeatherInfo, formatWeather;
 
 import 'dart:io' show ProcessSignal, exit;
 
 final eParser = EnergyParser();
+final nekoFetcher = NekoFetcher();
 
 String getNews() {
   const news = """
@@ -61,11 +63,13 @@ Future<BotClient> getClient() async {
   !help -- Отримати цей список
   !echo (Текст) -- Я віправлю зазначений текст
   !news -- Я відправлю новини кімнати, якщо є
-  !choice (Варіанти, ...) -- Я виберу випадковий варіант
+  !choice (Варіанти ...) -- Я виберу випадковий варіант
   !rps (Камінь | Ножиці | Папір) -- Я пограю в Камінь, Ножиці, Папір із тобою
   !light -- Я знайду і відправлю інформацію про відключення світла (WIP)
   !weather -- Я знайду погоду на сьогодні і завтра (WIP)
   !about -- Я відправлю інформацію про моїх авторів
+  !neko -- Я відправлю зображення Neko
+  !unban (UserID) -- Я розбаню зазначеного користувача
   """;
   client.addCommand(
       name: "help",
@@ -148,6 +152,21 @@ Future<BotClient> getClient() async {
       implementation: (List<String> args) async {
         await client.sendNotice(aboutMessage);
       });
+  client.addCommand(
+      name: "neko",
+      implementation: (List<String> args) async {
+        var image = await nekoFetcher.requestImageBytes();
+        if (image == null) {
+          return;
+        }
+        Uri id = await client.uploadContent(image, filename: "image/png");
+        // TODO: Send Image method in BotClient
+        client.sendMessage(
+            client.roomId,
+            "m.room.message",
+            client.generateUniqueTransactionId(),
+            {"msgtype": "m.image", "url": id.toString(), "body": "An image"});
+      });
   // Usage: unban (userId)
   client.addCommand(
     name: "unban",
@@ -159,7 +178,7 @@ Future<BotClient> getClient() async {
       var room = client.getRoomById(client.roomId);
       await room?.unban(args[0]);
     },
-    requiredAccess: AccessLevel.admin,
+    requiredAccess: AccessLevel.admin
   );
   client.addCommand(
     name: "rules", 
@@ -212,11 +231,12 @@ Future<void> run() async {
   });
   print("The bot is running...");
   ProcessSignal.sigint.watch().listen((var signal) async {
+    print("Exiting...");
     await client.sendNotice("Sayonara~~");
+    await Future.delayed(Duration(seconds: 1));
     await client.dispose();
     eParser.shutdown();
-    print("Exiting...");
-    await Future.delayed(Duration(seconds: 1));
+    nekoFetcher.shutdown();
     exit(0);
   });
 }
