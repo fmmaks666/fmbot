@@ -30,6 +30,28 @@ fmBot v0.3
 Created by fmmaks, thefoxcry
 """;
 
+const String rulesMessage = """
+Павила! 
+Правило №1:
+  Не спамити. 
+Правило №2:
+  Не присилати 18+ контент. 
+Правило №3: 
+  Не ображати одне одного. 
+Правило №4:
+  Не приглашати людей без попередження адміна. 
+Правило №5:
+  За прославлення Корпорацій як Google, Microsoft, Apple - БАН. 
+Правило №6:
+  Не використовувати своє обличчя на аватарці. 
+Правило №7: 
+  Не просити зробити вас адміном чи модератором.
+Created by 2becool, Edited by fmmaks.
+Дякую що прочитали (дотримуйтеся правил!).
+Щоб отримувати бонуси від Адміністраторів Вам потрібно приводити нових користувачів у групу. 
+* Admins can ban You without leading on ban reason, but if got Banned you 100% broke rule(s) *
+""";
+
 Future<BotClient> getClient() async {
   var client =
       await BotClient.fromConfig("./config.json", (var client, var name) async {
@@ -156,7 +178,29 @@ Future<BotClient> getClient() async {
       var room = client.getRoomById(client.roomId);
       await room?.unban(args[0]);
     },
-    requiredAccess: AccessLevel.admin,
+    requiredAccess: AccessLevel.admin
+  );
+  client.addCommand(
+    name: "rules", 
+    implementation: (List<String> args) async {
+      await client.sendNotice(rulesMessage);
+    }
+  );
+  client.addCommand(
+    name: "group", 
+    implementation: (List<String> args) async {
+      var room = client.getRoomById(client.roomId);
+      var users = room?.getParticipants();
+      for (var i = 0; i < users!.length; i++) {
+        final access = switch (users[i].powerLevel) {
+          100 => AccessLevel.admin,
+          50 => AccessLevel.moderator,
+          0 => AccessLevel.user,
+          _ => AccessLevel.user,
+        };
+        await client.sendNotice("${users[i].displayName} (${users[i].id}) - $access");
+      }
+    }
   );
   return client;
 }

@@ -14,8 +14,8 @@ typedef CommandCallback = Future<void> Function(List<String>);
 typedef UnknownCommand = FutureOr<void> Function(BotClient, String);
 
 enum AccessLevel {
-  user, // user has 0, fmBot has
-  moderator, // moderator haaas 50
+  user, // user has 0, fmBot has 1
+  moderator, // moderator has 50
   admin, // admin has 100
 }
 
