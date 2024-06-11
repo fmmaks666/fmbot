@@ -20,7 +20,7 @@ class Outage {
   String toString() {
     var fromHour = from.hour.toString().padLeft(2, "0");
     var fromMinute = from.minute.toString().padLeft(2, "0");
-    var toHour = to.minute.toString().padLeft(2, "0");
+    var toHour = to.hour.toString().padLeft(2, "0");
     var toMinute = to.minute.toString().padLeft(2, "0");
 
     return "$fromHour:$fromMinute -- $toHour:$toMinute";
