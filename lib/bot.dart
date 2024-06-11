@@ -252,6 +252,7 @@ Future<void> run() async {
   ProcessSignal.sigint.watch().listen((var signal) async {
     print("Exiting...");
     await client.sendNotice("Sayonara~~");
+    await client.logout();
     await Future.delayed(Duration(seconds: 1));
     await client.dispose();
     eParser.shutdown();
