@@ -18,7 +18,12 @@ class Outage {
 
   @override
   String toString() {
-    return "$from -- $to";
+    var fromHour = from.hour.toString().padLeft(2, "0");
+    var fromMinute = from.minute.toString().padLeft(2, "0");
+    var toHour = to.minute.toString().padLeft(2, "0");
+    var toMinute = to.minute.toString().padLeft(2, "0");
+
+    return "$fromHour:$fromMinute -- $toHour:$toMinute";
   }
 }
 
@@ -50,8 +55,8 @@ class EnergyParser {
     List<OutageData> parsedTimes = [];
     final parser = HtmlParser(page);
     final document = parser.parse();
-    /* This parser MAY FAIL */
-    var entries = document.getElementsByClassName(".grafik_string_list_item");
+    // The site also has section for Tomorrow; Would be nice to clarify if there a data for Tomorrow
+    var entries = document.querySelectorAll(".grafik_string_list_item");
     for (var entry in entries) {
       var times = entry.querySelectorAll("b");
       assert(times.length == 3);

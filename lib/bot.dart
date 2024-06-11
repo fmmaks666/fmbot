@@ -21,6 +21,12 @@ String getNews() {
   10 Червня, 2024
   | Додано !about
   | Технічні покращення
+  | Додано !unban
+  | Додано !neko
+  | Додано !rules
+  | Додано !users
+  11 Червня, 2024
+  | Майже завершено !light
   """;
   return news;
 }
@@ -102,7 +108,7 @@ Future<BotClient> getClient() async {
           var data = await eParser.getTimes(page);
           buffer.write("${i.key}: ");
           for (var j in data) {
-            buffer.write("${j.toString()}, ");
+            buffer.write("$j.toString()");
           }
           if (data.isEmpty) {
             buffer.write("Не заплановано");
