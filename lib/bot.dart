@@ -229,7 +229,6 @@ Future<void> run() async {
   await client.encryption?.keyManager.loadAllKeys();
   await client.sendNotice("Я працюю!");
 
-  // BUG: Message duplication
   client.onEvent.stream.listen((var data) async {
     // Better command hanlding (Probably in BotClient)
     String? sender = data.content["sender"];
