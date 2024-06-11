@@ -108,7 +108,7 @@ Future<BotClient> getClient() async {
           var data = await eParser.getTimes(page);
           buffer.write("${i.key}: ");
           for (var j in data) {
-            buffer.write("$j");
+            buffer.write("$j, ");
           }
           if (data.isEmpty) {
             buffer.write("Не заплановано");
