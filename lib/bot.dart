@@ -3,11 +3,15 @@ import 'package:bot/client.dart' show BotClient, AccessLevel;
 import 'package:bot/lights.dart' show Outage, EnergyParser;
 import 'package:bot/neko_images.dart' show NekoFetcher;
 import 'package:bot/weather.dart' show getWeatherInfo, formatWeather;
+import 'package:bot/database.dart' show DatabaseManager;
+import 'package:bot/awards.dart' show Award, Awards;
 
 import 'dart:io' show ProcessSignal, exit;
 
 final eParser = EnergyParser();
 final nekoFetcher = NekoFetcher();
+final dbManager = DatabaseManager("./fmbot.db");
+final Awards awardManager = Awards(dbManager);
 
 String getNews() {
   const news = """
@@ -78,25 +82,27 @@ Future<BotClient> getClient() async {
   !unban (UserID) -- Я розбаню зазначеного користувача
   !users -- Я відправлю список користувачів нашої кімнати
   !rules -- Я Нагадаю правила кімнати
+  !awards [UserID] -- Я відправлю список твої нагород, або зазначеного користувача
+  !awardGrant (UserID) (AwardID) -- Я нагороджу зазначеного користувача
   """;
   client.addCommand(
       name: "help",
-      implementation: (List<String> args) async {
+      implementation: (List<String> args, _) async {
         await client.sendNotice(helpMessage);
       });
   client.addCommand(
       name: "echo",
-      implementation: (List<String> args) async {
+      implementation: (List<String> args, _) async {
         await client.sendNotice(args.join(' '));
       });
   client.addCommand(
       name: "news",
-      implementation: (List<String> args) async {
+      implementation: (List<String> args, _) async {
         await client.sendNotice(getNews());
       });
   client.addCommand(
       name: "light",
-      implementation: (List<String> args) async {
+      implementation: (List<String> args, _) async {
         StringBuffer buffer = StringBuffer();
         if (client.customData["lightUrls"] is! Map) {
           print("DOOMED");
@@ -119,7 +125,7 @@ Future<BotClient> getClient() async {
       });
   client.addCommand(
       name: "choice",
-      implementation: (List<String> args) async {
+      implementation: (List<String> args, _) async {
         if (args.isEmpty) {
           await client.sendNotice("Вкажи якісь варіанти");
           return;
@@ -130,7 +136,7 @@ Future<BotClient> getClient() async {
       });
   client.addCommand(
       name: "rps",
-      implementation: (List<String> args) async {
+      implementation: (List<String> args, _) async {
         if (args.isEmpty) {
           await client.sendNotice("Вибери щось");
           return;
@@ -163,7 +169,7 @@ Future<BotClient> getClient() async {
       });
   client.addCommand(
       name: "weather",
-      implementation: (List<String> args) async {
+      implementation: (List<String> args, _) async {
         StringBuffer buffer = StringBuffer();
         buffer.writeln("=== Прогноз Погоди (В розробці) ===");
         var forecast = await getWeatherInfo();
@@ -172,12 +178,12 @@ Future<BotClient> getClient() async {
       });
   client.addCommand(
       name: "about",
-      implementation: (List<String> args) async {
+      implementation: (List<String> args, _) async {
         await client.sendNotice(aboutMessage);
       });
   client.addCommand(
       name: "neko",
-      implementation: (List<String> args) async {
+      implementation: (List<String> args, _) async {
         var image = await nekoFetcher.requestImageBytes();
         if (image == null) {
           return;
@@ -193,7 +199,7 @@ Future<BotClient> getClient() async {
   // Usage: unban (userId)
   client.addCommand(
       name: "unban",
-      implementation: (List<String> args) async {
+      implementation: (List<String> args, _) async {
         if (args.isEmpty) {
           await client.sendNotice("Вкажи кого розбанити.");
           return;
@@ -204,12 +210,12 @@ Future<BotClient> getClient() async {
       requiredAccess: AccessLevel.admin);
   client.addCommand(
       name: "rules",
-      implementation: (List<String> args) async {
+      implementation: (List<String> args, _) async {
         await client.sendNotice(rulesMessage);
       });
   client.addCommand(
       name: "users",
-      implementation: (List<String> args) async {
+      implementation: (List<String> args, _) async {
         var room = client.getRoomById(client.roomId);
         if (room == null) return;
         // var users = await room.requestParticipants();
@@ -227,14 +233,90 @@ Future<BotClient> getClient() async {
         }
         await client.sendNotice(buffer.toString());
       });
+  client.addCommand(
+    name: "awards",
+    implementation: (List<String> args, var context) async {
+      // WARNING: There are problems when accessing !awards because userId may be displayName
+      String userId = args.isNotEmpty ? args[0] : context.displayName;
+      // Handle error that may occur when accessing [0]
+      // var justName = user.id.split(':')[0].replaceFirst("@", "");
+      var awards = await awardManager.getUserAwards(userId);
+      StringBuffer buffer = StringBuffer();
+      buffer.writeln("Нагороди $userId");
+      int fame = 0;
+      for (var award in awards) {
+        fame += award.credit ?? 0;
+        buffer.writeln(award.toExtendedString());
+      }
+      String attitude = switch (fame) {
+        == 0 => "Доброго вам часу",
+        <= 100 && >= 0 => "Сер, похвала вам!",
+        <= 200 && >= 0 => "Живи і жий щасливо",
+        <= 300 && >= 0 => "Свят, свят!",
+        <= 400 && >= 0 => "Добрі люди існують!",
+        <= 500 && >= 0 => "Святий чоловік, не інакше!",
+        <= 600 && >= 0 => "Добродій!",
+        <= 700 && >= 0 => "Джентельмен!",
+        <= 800 && >= 0 => "Славно, Славно, де можна задонатити?",
+        <= 900 && >= 0 => "Слава добрій людині!",
+        <= 1000 && >= 0 => "Золото, а не чоловік!",
+        > 1000 => "Велика людина, як бог!",
+        >= -10 => "Поганий чоловік!",
+        >= -50 => "Кримінал!",
+        >= -100 => "Попереджаю: У тебе будуть проблеми!",
+        >= -200 => "Народ уб'є тебе!",
+        >= -300 => "Ситуація тут важка!",
+        >= -400 => "Партія не любить тебе!",
+        >= -500 => "Так, так. Ти помреш, дибіле!",
+        >= -600 => "Мовчи, сволото!",
+        >= -700 => "Помри, помри, помри!",
+        >= -800 => "FBI хоче побачити тебе, Чорте!",
+        >= -900 => "Бачила людей і гірше!",
+        >= -1000 => "Знаєш, я хочу ЗАБАНИТИ тебе! Ти ******** #######!",
+        < -1000 => "***! ***! ***!",
+        _ => "...?",
+      };
+      buffer.writeln("Social Credit: $fame");
+      buffer.writeln(attitude);
+      await client.sendNotice(buffer.toString());
+    },
+  );
+  client.addCommand(
+      name: "awardGrant",
+      implementation: (List<String> args, _) async {
+        if (args.length < 2) {
+          await client.sendNotice("Мені треба всі параметри");
+          return;
+        }
+        String userId = args[0];
+        int? awardId = int.tryParse(args[1]);
+        if (awardId is! int) {
+          await client.sendNotice("awardId не правильний");
+          return;
+        }
+        Award? award = await awardManager.getAward(awardId);
+        if (award == null) return;
+        await awardManager.grantAward(userId, awardId);
+        await client.sendNotice(
+            " 🎖️ $userId нагороджується Нагородою: ${award.toBasicString()} 🎖️");
+      },
+      requiredAccess: AccessLevel.admin);
   return client;
 }
 
 Future<void> run() async {
   final client = await getClient();
-  await client.encryption?.keyManager.loadAllKeys();
-  await client.sendNotice("Я працюю!");
-
+  var keysFuture = client.encryption?.keyManager.loadAllKeys();
+  await Future.wait<void>([
+    client.sendNotice("Я працюю!"),
+    dbManager.createTables(
+      (var tx) async {
+        await tx.execute(
+            "CREATE TABLE IF NOT EXISTS users(userId TEXT PRIMARY KEY, JSON awards)");
+      },
+    )
+  ]);
+  await keysFuture;
   client.onEvent.stream.listen((var data) async {
     // Better command hanlding (Probably in BotClient)
     String? sender = data.content["sender"];

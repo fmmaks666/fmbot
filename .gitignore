@@ -4,3 +4,5 @@
 redacted
 config.json
 bin/bot.exe
+fmbot.db
+fmbot.db*

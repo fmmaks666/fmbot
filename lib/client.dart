@@ -10,7 +10,7 @@ import 'dart:async' show FutureOr;
 import 'dart:io' show File;
 import 'dart:convert' show json;
 
-typedef CommandCallback = Future<void> Function(List<String>);
+typedef CommandCallback = Future<void> Function(List<String>, ExecutionContext);
 typedef UnknownCommand = FutureOr<void> Function(BotClient, String);
 
 enum AccessLevel {
@@ -29,9 +29,10 @@ class Command {
       {required this.name,
       required this.implementation,
       this.requiredAccess = AccessLevel.user});
-  Future<void> run(args, AccessLevel userAccess) async {
+  Future<void> run(
+      args, AccessLevel userAccess, ExecutionContext context) async {
     if (isAccessible(userAccess, requiredAccess)) {
-      await implementation(args);
+      await implementation(args, context);
     }
   }
 
@@ -42,6 +43,12 @@ class Command {
       return false;
     }
   }
+}
+
+class ExecutionContext {
+  final String userId;
+  final String displayName;
+  const ExecutionContext({required this.userId, required this.displayName});
 }
 
 class BotClient extends Client {
@@ -67,6 +74,7 @@ class BotClient extends Client {
 
   // Can't make this a constuctor because we call login
   // Maybe I should turn this into a constuctor
+  // TODO: Validate using if case
   static Future<BotClient> fromJson(
       Map<String, Object?> json, UnknownCommand? unknownCommandCallback) async {
     // Errors here are bad
@@ -133,8 +141,10 @@ class BotClient extends Client {
       _ => AccessLevel.user,
     };
 
-    await f.run(args,
-        access); // Треба також кинути користувача щоб run міг перевірити доступ
+    var context = ExecutionContext(
+        userId: user.id, displayName: user.displayName ?? user.id);
+    await f.run(args, access,
+        context); // Треба також кинути користувача щоб run міг перевірити доступ
   }
 
   // TODO: better argument parser
