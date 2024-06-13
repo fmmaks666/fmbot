@@ -141,6 +141,7 @@ class BotClient extends Client {
       _ => AccessLevel.user,
     };
 
+    // BUG: Some users with powerLevel 100 are considered to have only 0 here
     var context = ExecutionContext(
         userId: user.id, displayName: user.displayName ?? user.id);
     await f.run(args, access,
