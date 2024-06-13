@@ -66,6 +66,17 @@ Created by 2becool, Edited by fmmaks.
 * Admins can ban You without leading on ban reason, but if got Banned you 100% broke rule(s) *
 """;
 
+extension on BotClient {
+  bool isAdmin(String userId) {
+    if (customData case {"admins": List admins}) {
+      if (admins.contains(userId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
 Future<BotClient> getClient() async {
   var client =
       await BotClient.fromConfig("./config.json", (var client, var name) async {
@@ -87,7 +98,8 @@ Future<BotClient> getClient() async {
   !users -- Я відправлю список користувачів нашої кімнати
   !rules -- Я Нагадаю правила кімнати
   !awards [UserID] -- Я відправлю список твої нагород, або зазначеного користувача
-  !awardGrant (UserID) (AwardID) -- Я нагороджу зазначеного користувача
+  !grantAward (UserID) (AwardID) -- Я нагороджу зазначеного користувача
+  !listAwards -- Я відправлю список доступних нагород
   """;
   client.addCommand(
       name: "help",
@@ -193,7 +205,7 @@ Future<BotClient> getClient() async {
           return;
         }
         Uri id = await client.uploadContent(image, filename: "image/png");
-        // TODO: Send Image method in BotClient
+        // TODO: Send Image method in BotClient (Should include size and hw)
         client.sendMessage(
             client.roomId,
             "m.room.message",
@@ -202,16 +214,19 @@ Future<BotClient> getClient() async {
       });
   // Usage: unban (userId)
   client.addCommand(
-      name: "unban",
-      implementation: (List<String> args, _) async {
-        if (args.isEmpty) {
-          await client.sendNotice("Вкажи кого розбанити.");
-          return;
-        }
-        var room = client.getRoomById(client.roomId);
-        await room?.unban(args[0]);
-      },
-      requiredAccess: AccessLevel.admin);
+    name: "unban",
+    implementation: (List<String> args, context) async {
+      if (!client.isAdmin(context.userId)) {
+        return;
+      }
+      if (args.isEmpty) {
+        await client.sendNotice("Вкажи кого розбанити.");
+        return;
+      }
+      var room = client.getRoomById(client.roomId);
+      await room?.unban(args[0]);
+    }, /* requiredAccess: AccessLevel.admin */
+  );
   client.addCommand(
       name: "rules",
       implementation: (List<String> args, _) async {
@@ -240,7 +255,8 @@ Future<BotClient> getClient() async {
   client.addCommand(
     name: "awards",
     implementation: (List<String> args, var context) async {
-      // WARNING: There are problems when accessing !awards because userId may be displayName
+      // TODO: Cache the results
+      // FIXME: There are problems when accessing !awards because userId may be displayName
       String userId = args.isNotEmpty ? args[0] : context.displayName;
       // Handle error that may occur when accessing [0]
       // var justName = user.id.split(':')[0].replaceFirst("@", "");
@@ -277,7 +293,8 @@ Future<BotClient> getClient() async {
         >= -800 => "FBI хоче побачити тебе, Чорте!",
         >= -900 => "Бачила людей і гірше!",
         >= -1000 => "Знаєш, я хочу ЗАБАНИТИ тебе! Ти ******** #######!",
-        < -1000 => "***! ***! ***!",
+        >= -2000 => "ТИ! ТАК ТИ! ДУМАЄШ ЩО МОЖЕШ ВЕРШИТИ ДОЛЮ ЛЮДЕЙ?!",
+        < -2000 => "***! ***! ***!",
         _ => "...?",
       };
       buffer.writeln("Social Credit: $fame");
@@ -286,25 +303,34 @@ Future<BotClient> getClient() async {
     },
   );
   client.addCommand(
-      name: "awardGrant",
+    name: "grantAward",
+    implementation: (List<String> args, context) async {
+      if (!client.isAdmin(context.userId)) {
+        return;
+      }
+      if (args.length < 2) {
+        await client.sendNotice("Мені треба всі параметри");
+        return;
+      }
+      String userId = args[0];
+      int? awardId = int.tryParse(args[1]);
+      if (awardId is! int) {
+        await client.sendNotice("awardId не правильний");
+        return;
+      }
+      Award? award = await awardManager.getAward(awardId);
+      if (award == null) return;
+      await awardManager.grantAward(userId, awardId);
+      await client.sendNotice(
+          " 🎖️ $userId нагороджується Нагородою: ${award.toBasicString()} 🎖️");
+    }, /* requiredAccess: AccessLevel.admin */
+  );
+  client.addCommand(
+      name: "listAwards",
       implementation: (List<String> args, _) async {
-        if (args.length < 2) {
-          await client.sendNotice("Мені треба всі параметри");
-          return;
-        }
-        String userId = args[0];
-        int? awardId = int.tryParse(args[1]);
-        if (awardId is! int) {
-          await client.sendNotice("awardId не правильний");
-          return;
-        }
-        Award? award = await awardManager.getAward(awardId);
-        if (award == null) return;
-        await awardManager.grantAward(userId, awardId);
-        await client.sendNotice(
-            " 🎖️ $userId нагороджується Нагородою: ${award.toBasicString()} 🎖️");
-      },
-      requiredAccess: AccessLevel.admin);
+        var awards = await awardManager.listAwards();
+        await client.sendNotice(awards.join('\n'));
+      });
   return client;
 }
 

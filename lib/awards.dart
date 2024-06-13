@@ -28,7 +28,7 @@ class Award {
   }
   @override
   String toString() {
-    return "$name ($description) $credit $id";
+    return "$name ($description) ${id ?? 'Unknown ID'}";
   }
 
   String toBasicString() {
@@ -102,7 +102,15 @@ class Awards {
   }
 
   Future<List<Award>> listAwards() async {
-    // TODO
-    return <Award>[];
+    const String query = "SELECT id, name, description FROM awards";
+    // TODO: Handle errors
+    var results = await db.db.getAll(query);
+    // IMPORTANT: Handle [InvalidAward] here
+    List<Award> awards = [];
+    void addAwardvar(Row element) => awards.add(Award.fromJson(element.cast()));
+    results.forEach(
+      addAwardvar,
+    );
+    return awards;
   }
 }
