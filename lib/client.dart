@@ -5,7 +5,8 @@ import 'package:matrix/matrix.dart'
         User,
         EventFilter,
         LoginType,
-        AuthenticationUserIdentifier;
+        AuthenticationUserIdentifier,
+        Room;
 import 'dart:async' show FutureOr;
 import 'dart:io' show File;
 import 'dart:convert' show json;
@@ -53,6 +54,16 @@ class ExecutionContext {
 
 class BotClient extends Client {
   final String roomId;
+  Room? _room;
+  Room? get room {
+    if (_room != null) {
+      return _room;
+    } else {
+      _room = getRoomById(roomId);
+      return _room;
+    }
+  }
+
   //final Map<String, Command> _botCommands = {};
   final Map<String, Command> _botCommands = {};
   // ^ Мож змінити на List<Command>

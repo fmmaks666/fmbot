@@ -5,7 +5,6 @@ import 'package:bot/neko_images.dart' show NekoFetcher;
 import 'package:bot/weather.dart' show getWeatherInfo, formatWeather;
 import 'package:bot/database.dart' show DatabaseManager;
 import 'package:bot/awards.dart' show Award, Awards;
-
 import 'dart:io' show ProcessSignal, exit;
 
 final eParser = EnergyParser();
@@ -75,6 +74,13 @@ extension on BotClient {
     }
     return false;
   }
+}
+
+String? parseUserName(String userId) {
+  RegExp re = RegExp(r"@([^:]+):");
+  var matches = re.firstMatch(userId);
+  String? name = matches?.group(1);
+  return name;
 }
 
 Future<BotClient> getClient() async {
@@ -256,13 +262,17 @@ Future<BotClient> getClient() async {
     name: "awards",
     implementation: (List<String> args, var context) async {
       // TODO: Cache the results
-      // FIXME: There are problems when accessing !awards because userId may be displayName
-      String userId = args.isNotEmpty ? args[0] : context.displayName;
-      // Handle error that may occur when accessing [0]
-      // var justName = user.id.split(':')[0].replaceFirst("@", "");
-      var awards = await awardManager.getUserAwards(userId);
+      String? userName;
+      if (args.isEmpty) {
+        userName = parseUserName(context.userId);
+      } else {
+        String displayName = args[0];
+        userName = parseUserName(displayName) ?? displayName;
+      }
+      if (userName == null) return;
+      var awards = await awardManager.getUserAwards(userName);
       StringBuffer buffer = StringBuffer();
-      buffer.writeln("Нагороди $userId");
+      buffer.writeln("Нагороди $userName");
       int fame = 0;
       for (var award in awards) {
         fame += award.credit ?? 0;
@@ -360,7 +370,8 @@ Future<void> run() async {
       var args = client.parseArguments(content);
       var command = args.first;
       args.removeAt(0);
-      var room = client.getRoomById(data.roomID);
+      // var room = client.getRoomById(data.roomID);
+      var room = client.room;
       if (room != null) {
         User user = User(sender, room: room);
         client.invokeCommand(command, args, user);
