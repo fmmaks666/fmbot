@@ -7,6 +7,10 @@ import 'package:bot/database.dart' show DatabaseManager;
 import 'package:bot/awards.dart' show Award, Awards;
 import 'dart:io' show ProcessSignal, exit;
 
+// TODO: Turn [BotClient] to a library
+// TODO: Make code more modular
+// TODO: Logs
+
 final eParser = EnergyParser();
 final nekoFetcher = NekoFetcher();
 final dbManager = DatabaseManager("./fmbot.db");
@@ -170,6 +174,7 @@ Future<BotClient> getClient() async {
         var me = choices[0];
         var you = args[0];
         await client.sendNotice("Я вибрала $me");
+        // TODO: Turn to a separate function
         switch ([me.toLowerCase(), you.toLowerCase()]) {
           case ["ножиці", "папір"]:
             await message("виграла!");

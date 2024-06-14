@@ -91,11 +91,12 @@ class Awards {
 
   Future<Award?> getAward(final int awardId) async {
     const String query = "SELECT name, description FROM awards WHERE id = (?)";
-    // BUG: No element Exception is thrown here
-    var result = await db.db.get(query, [awardId]);
     try {
+      var result = await db.db.get(query, [awardId]);
       var award = Award.fromJson(result.cast());
       return award;
+    } on StateError catch (e) {
+      return null;
     } on InvalidAward {
       return null;
     }
@@ -104,6 +105,7 @@ class Awards {
   Future<List<Award>> listAwards() async {
     const String query = "SELECT id, name, description FROM awards";
     // TODO: Handle errors
+    // NOTE: Possible StateError here
     var results = await db.db.getAll(query);
     // IMPORTANT: Handle [InvalidAward] here
     List<Award> awards = [];

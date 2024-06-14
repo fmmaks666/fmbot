@@ -2,7 +2,10 @@ import 'package:bot/bot.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('calculate', () {
-    //expect(calculate(), 42);
+  test('parseUserName parses correctly', () {
+    expect(parseUserName("@user:example.org"), "user");
+  });
+  test('parseUserName returns Null on invalid input', () {
+    expect(parseUserName("user"), null);
   });
 }
