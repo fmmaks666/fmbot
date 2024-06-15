@@ -2,9 +2,9 @@ import 'package:matrix/matrix.dart' show User;
 import 'package:bot/client.dart' show BotClient, AccessLevel;
 import 'package:bot/lights.dart' show Outage, EnergyParser;
 import 'package:bot/neko_images.dart' show NekoFetcher;
-import 'package:bot/weather.dart' show getWeatherInfo, formatWeather;
 import 'package:bot/database.dart' show DatabaseManager;
 import 'package:bot/awards.dart' show Award, Awards;
+import 'package:bot/weather.dart' show SinoptikParser;
 import 'dart:io' show ProcessSignal, exit;
 
 // TODO: Turn [BotClient] to a library
@@ -12,6 +12,7 @@ import 'dart:io' show ProcessSignal, exit;
 // TODO: Logs
 
 final eParser = EnergyParser();
+final weather = SinoptikParser();
 final nekoFetcher = NekoFetcher();
 final dbManager = DatabaseManager("./fmbot.db");
 final Awards awardManager = Awards(dbManager);
@@ -199,8 +200,13 @@ Future<BotClient> getClient() async {
       implementation: (List<String> args, _) async {
         StringBuffer buffer = StringBuffer();
         buffer.writeln("=== Прогноз Погоди (В розробці) ===");
-        var forecast = await getWeatherInfo();
-        buffer.writeln(formatWeather(forecast));
+
+        final reports = await weather
+            .parseWeather(Uri.parse("https://ua.sinoptik.ua/погода-хуст"));
+
+        for (var report in reports) {
+          buffer.writeln(report);
+        }
         client.sendNotice(buffer.toString());
       });
   client.addCommand(
@@ -391,6 +397,7 @@ Future<void> run() async {
     await Future.delayed(Duration(seconds: 1));
     await client.dispose();
     eParser.shutdown();
+    weather.shutdown();
     nekoFetcher.shutdown();
     exit(0);
   });

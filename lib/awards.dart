@@ -95,7 +95,7 @@ class Awards {
       var result = await db.db.get(query, [awardId]);
       var award = Award.fromJson(result.cast());
       return award;
-    } on StateError catch (e) {
+    } on StateError {
       return null;
     } on InvalidAward {
       return null;
