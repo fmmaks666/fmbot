@@ -148,6 +148,7 @@ Future<BotClient> getClient() async {
           }
           buffer.writeln();
         }
+        buffer.writeln("* -- Період на завтра");
         client.sendNotice(buffer.toString());
       });
   client.addCommand(

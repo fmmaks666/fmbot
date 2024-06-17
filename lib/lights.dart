@@ -5,16 +5,15 @@ import 'package:intl/intl.dart' show DateFormat;
 class OutageData {
   String from;
   String to;
-  OutageData(this.from, this.to);
+  bool tomorrow;
+  OutageData(this.from, this.to, this.tomorrow);
 }
 
 class Outage {
-  late bool enabled;
   DateTime from;
   DateTime to;
-  Outage(this.from, this.to) {
-    enabled = false;
-  }
+  bool tomorrow;
+  Outage(this.from, this.to, this.tomorrow);
 
   @override
   String toString() {
@@ -23,7 +22,7 @@ class Outage {
     var toHour = to.hour.toString().padLeft(2, "0");
     var toMinute = to.minute.toString().padLeft(2, "0");
 
-    return "$fromHour:$fromMinute -- $toHour:$toMinute";
+    return "${tomorrow ? '*' : ''}$fromHour:$fromMinute -- $toHour:$toMinute";
   }
 }
 
@@ -39,7 +38,8 @@ class EnergyParser {
       DateFormat format = DateFormat.Hm();
       var from = format.parse(t.from);
       var to = format.parse(t.to);
-      outages.add(Outage(from, to));
+      var tomorrow = t.tomorrow;
+      outages.add(Outage(from, to, tomorrow));
     }
 
     return outages;
@@ -57,12 +57,16 @@ class EnergyParser {
     final document = parser.parse();
     // The site also has section for Tomorrow; Would be nice to clarify if there a data for Tomorrow
     var entries = document.querySelectorAll(".grafik_string_list_item");
+    var todayList = document.querySelector(".grafik_string_list");
+    var today = todayList?.children.length ?? 0;
+    var plannedToday = today > 0;
     for (var entry in entries) {
       var times = entry.querySelectorAll("b");
       assert(times.length == 3);
       var from = times[0].innerHtml;
       var to = times[1].innerHtml;
-      parsedTimes.add(OutageData(from, to));
+      parsedTimes.add(OutageData(from, to, today > 0 ? false : true));
+      if (plannedToday) today--;
     }
     return parsedTimes;
   }

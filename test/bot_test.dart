@@ -8,4 +8,5 @@ void main() {
   test('parseUserName returns Null on invalid input', () {
     expect(parseUserName("user"), null);
   });
+  // TODO: Tests for lights.dart
 }
