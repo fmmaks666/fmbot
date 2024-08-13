@@ -70,6 +70,25 @@ Created by 2becool, Edited by fmmaks.
 * Admins can ban You without leading on ban reason, but if got Banned you 100% broke rule(s) *
 """;
 
+const String helpMessage = """
+  === HELP ===
+  !help -- Отримати цей список
+  !echo (Текст) -- Я віправлю зазначений текст
+  !news -- Я відправлю новини кімнати, якщо є
+  !choice (Варіанти ...) -- Я виберу випадковий варіант
+  !rps (Камінь | Ножиці | Папір) -- Я пограю в Камінь, Ножиці, Папір із тобою
+  !light -- Я знайду і відправлю інформацію про відключення світла (WIP)
+  !weather -- Я знайду погоду на сьогодні і завтра (WIP)
+  !about -- Я відправлю інформацію про моїх авторів
+  !neko -- Я відправлю зображення Neko
+  !unban (UserID) -- Я розбаню зазначеного користувача
+  !users -- Я відправлю список користувачів нашої кімнати
+  !rules -- Я Нагадаю правила кімнати
+  !awards [UserID] -- Я відправлю список твої нагород, або зазначеного користувача
+  !grantAward (UserID) (AwardID) -- Я нагороджу зазначеного користувача
+  !listAwards -- Я відправлю список доступних нагород
+  """;
+
 extension on BotClient {
   bool isAdmin(String userId) {
     if (customData case {"admins": List admins}) {
@@ -88,44 +107,35 @@ String? parseUserName(String userId) {
   return name;
 }
 
+void addStaticCommand(required String name, required String data) {
+  var client = await getClient();
+  client.addCommand(
+      name: name,
+      implementation: (List<String> args, _) async {
+        await client.sendNotice(data);
+      });
+}
+
 Future<BotClient> getClient() async {
   var client =
       await BotClient.fromConfig("./config.json", (var client, var name) async {
     await client.sendNotice("Вибачте, я не знаю команду: $name");
   });
+  
+  return client;
+}
 
-  const String helpMessage = """
-  === HELP ===
-  !help -- Отримати цей список
-  !echo (Текст) -- Я віправлю зазначений текст
-  !news -- Я відправлю новини кімнати, якщо є
-  !choice (Варіанти ...) -- Я виберу випадковий варіант
-  !rps (Камінь | Ножиці | Папір) -- Я пограю в Камінь, Ножиці, Папір із тобою
-  !light -- Я знайду і відправлю інформацію про відключення світла (WIP)
-  !weather -- Я знайду погоду на сьогодні і завтра (WIP)
-  !about -- Я відправлю інформацію про моїх авторів
-  !neko -- Я відправлю зображення Neko
-  !unban (UserID) -- Я розбаню зазначеного користувача
-  !users -- Я відправлю список користувачів нашої кімнати
-  !rules -- Я Нагадаю правила кімнати
-  !awards [UserID] -- Я відправлю список твої нагород, або зазначеного користувача
-  !grantAward (UserID) (AwardID) -- Я нагороджу зазначеного користувача
-  !listAwards -- Я відправлю список доступних нагород
-  """;
-  client.addCommand(
-      name: "help",
-      implementation: (List<String> args, _) async {
-        await client.sendNotice(helpMessage);
-      });
+Future<void> addAllCommands() async {
+  var client = await getClient();
+
+  addStaticCommand("help", helpMessage);
+  addStaticCommand("news", getNews());
+  addStaticCommand("about", aboutMessage);
+  addStaticCommand("rules", rulesMessage);
   client.addCommand(
       name: "echo",
       implementation: (List<String> args, _) async {
         await client.sendNotice(args.join(' '));
-      });
-  client.addCommand(
-      name: "news",
-      implementation: (List<String> args, _) async {
-        await client.sendNotice(getNews());
       });
   client.addCommand(
       name: "light",
@@ -211,11 +221,6 @@ Future<BotClient> getClient() async {
         client.sendNotice(buffer.toString());
       });
   client.addCommand(
-      name: "about",
-      implementation: (List<String> args, _) async {
-        await client.sendNotice(aboutMessage);
-      });
-  client.addCommand(
       name: "neko",
       implementation: (List<String> args, _) async {
         var image = await nekoFetcher.requestImageBytes();
@@ -245,11 +250,6 @@ Future<BotClient> getClient() async {
       await room?.unban(args[0]);
     }, /* requiredAccess: AccessLevel.admin */
   );
-  client.addCommand(
-      name: "rules",
-      implementation: (List<String> args, _) async {
-        await client.sendNotice(rulesMessage);
-      });
   client.addCommand(
       name: "users",
       implementation: (List<String> args, _) async {
@@ -317,7 +317,7 @@ Future<BotClient> getClient() async {
         >= -1000 => "Знаєш, я хочу ЗАБАНИТИ тебе! Ти ******** #######!",
         >= -2000 => "ТИ! ТАК ТИ! ДУМАЄШ ЩО МОЖЕШ ВЕРШИТИ ДОЛЮ ЛЮДЕЙ?!",
         < -2000 => "***! ***! ***!",
-        _ => "...?",
+        _ => "...? Пробачте, а ви існуєте?",
       };
       buffer.writeln("Social Credit: $fame");
       buffer.writeln(attitude);
@@ -353,11 +353,11 @@ Future<BotClient> getClient() async {
         var awards = await awardManager.listAwards();
         await client.sendNotice(awards.join('\n'));
       });
-  return client;
 }
 
 Future<void> run() async {
   final client = await getClient();
+  await addAllCommands();
   var keysFuture = client.encryption?.keyManager.loadAllKeys();
   await Future.wait<void>([
     client.sendNotice("Я працюю!"),
