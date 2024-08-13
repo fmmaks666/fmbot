@@ -98,6 +98,15 @@ extension on BotClient {
     }
     return false;
   }
+
+  // TODO: Move to BotClient
+  Future<void> addStaticCommand(String name, String data) async {
+    addCommand(
+        name: name,
+        implementation: (List<String> args, _) async {
+          await sendNotice(data);
+        });
+  }
 }
 
 String? parseUserName(String userId) {
@@ -107,257 +116,247 @@ String? parseUserName(String userId) {
   return name;
 }
 
-void addStaticCommand(required String name, required String data) {
-  var client = await getClient();
-  client.addCommand(
-      name: name,
-      implementation: (List<String> args, _) async {
-        await client.sendNotice(data);
-      });
-}
-
 Future<BotClient> getClient() async {
   var client =
       await BotClient.fromConfig("./config.json", (var client, var name) async {
     await client.sendNotice("Вибачте, я не знаю команду: $name");
   });
-  
+
   return client;
 }
 
-Future<void> addAllCommands() async {
-  var client = await getClient();
-
-  addStaticCommand("help", helpMessage);
-  addStaticCommand("news", getNews());
-  addStaticCommand("about", aboutMessage);
-  addStaticCommand("rules", rulesMessage);
-  client.addCommand(
-      name: "echo",
-      implementation: (List<String> args, _) async {
-        await client.sendNotice(args.join(' '));
-      });
-  client.addCommand(
-      name: "light",
-      implementation: (List<String> args, _) async {
-        StringBuffer buffer = StringBuffer();
-        if (client.customData["lightUrls"] is! Map) {
-          print("DOOMED");
-          return;
-        }
-        buffer.writeln("=== Відключення Світла (В розробці) ===");
-        for (var i in client.customData["lightUrls"].entries) {
-          var page = await eParser.getPage(Uri.parse(i.value));
-          var data = await eParser.getTimes(page);
-          buffer.write("${i.key}: ");
-          for (var j in data) {
-            buffer.write("$j, ");
+Future<void> addAllCommands(BotClient client) async {
+  client
+    ..addStaticCommand("rules", rulesMessage)
+    ..addStaticCommand("help", helpMessage)
+    ..addStaticCommand("news", getNews())
+    ..addStaticCommand("about", aboutMessage)
+    ..addCommand(
+        name: "echo",
+        implementation: (List<String> args, _) async {
+          await client.sendNotice(args.join(' '));
+        })
+    ..addCommand(
+        name: "light",
+        implementation: (List<String> args, _) async {
+          StringBuffer buffer = StringBuffer();
+          if (client.customData["lightUrls"] is! Map) {
+            print("DOOMED");
+            return;
           }
-          if (data.isEmpty) {
-            buffer.write("Не заплановано");
+          buffer.writeln("=== Відключення Світла (В розробці) ===");
+          for (var i in client.customData["lightUrls"].entries) {
+            var page = await eParser.getPage(Uri.parse(i.value));
+            var data = await eParser.getTimes(page);
+            buffer.write("${i.key}: ");
+            for (var j in data) {
+              buffer.write("$j, ");
+            }
+            if (data.isEmpty) {
+              buffer.write("Не заплановано");
+            }
+            buffer.writeln();
           }
-          buffer.writeln();
-        }
-        buffer.writeln("* -- Період на завтра");
-        client.sendNotice(buffer.toString());
-      });
-  client.addCommand(
-      name: "choice",
-      implementation: (List<String> args, _) async {
-        if (args.isEmpty) {
-          await client.sendNotice("Вкажи якісь варіанти");
-          return;
-        }
-        args.shuffle();
-        var selected = args[0];
-        await client.sendNotice("Я вибрала: $selected");
-      });
-  client.addCommand(
-      name: "rps",
-      implementation: (List<String> args, _) async {
-        if (args.isEmpty) {
-          await client.sendNotice("Вибери щось");
-          return;
-        }
-        var choices = ["Ножиці", "Камінь", "Папір"];
-        choices.shuffle();
-        Future<void> message(String status) async =>
-            await client.sendNotice("Я $status");
-        var me = choices[0];
-        var you = args[0];
-        await client.sendNotice("Я вибрала $me");
-        // TODO: Turn to a separate function
-        switch ([me.toLowerCase(), you.toLowerCase()]) {
-          case ["ножиці", "папір"]:
-            await message("виграла!");
-          case ["папір", "камінь"]:
-            await message("виграла!");
-          case ["камінь", "ножиці"]:
-            await message("виграла!");
-          case ["папір", "ножиці"]:
-            await message("програла :(");
-          case ["камінь", "папір"]:
-            await message("програла :(");
-          case ["ножиці", "камінь"]:
-            await message("програла :(");
-          case [var mine, var yours] when mine == yours:
-            await client.sendNotice("Ніхто не виграв");
-          default:
-            await client.sendNotice("Ти вибрав щось не те");
-        }
-      });
-  client.addCommand(
-      name: "weather",
-      implementation: (List<String> args, _) async {
-        StringBuffer buffer = StringBuffer();
-        buffer.writeln("=== Прогноз Погоди (В розробці) ===");
+          buffer.writeln("* -- Період на завтра");
+          client.sendNotice(buffer.toString());
+        })
+    ..addCommand(
+        name: "choice",
+        implementation: (List<String> args, _) async {
+          if (args.isEmpty) {
+            await client.sendNotice("Вкажи якісь варіанти");
+            return;
+          }
+          args.shuffle();
+          var selected = args[0];
+          await client.sendNotice("Я вибрала: $selected");
+        })
+    ..addCommand(
+        name: "rps",
+        implementation: (List<String> args, _) async {
+          if (args.isEmpty) {
+            await client.sendNotice("Вибери щось");
+            return;
+          }
+          var choices = ["Ножиці", "Камінь", "Папір"];
+          choices.shuffle();
+          Future<void> message(String status) async =>
+              await client.sendNotice("Я $status");
+          var me = choices[0];
+          var you = args[0];
+          await client.sendNotice("Я вибрала $me");
+          // TODO: Turn to a separate function
+          switch ([me.toLowerCase(), you.toLowerCase()]) {
+            case ["ножиці", "папір"]:
+              await message("виграла!");
+            case ["папір", "камінь"]:
+              await message("виграла!");
+            case ["камінь", "ножиці"]:
+              await message("виграла!");
+            case ["папір", "ножиці"]:
+              await message("програла :(");
+            case ["камінь", "папір"]:
+              await message("програла :(");
+            case ["ножиці", "камінь"]:
+              await message("програла :(");
+            case [var mine, var yours] when mine == yours:
+              await client.sendNotice("Ніхто не виграв");
+            default:
+              await client.sendNotice("Ти вибрав щось не те");
+          }
+        })
+    ..addCommand(
+        name: "weather",
+        implementation: (List<String> args, _) async {
+          StringBuffer buffer = StringBuffer();
+          buffer.writeln("=== Прогноз Погоди ===");
 
-        final reports = await weather
-            .parseWeather(Uri.parse("https://ua.sinoptik.ua/погода-хуст"));
+          final reports = await weather
+              .parseWeather(Uri.parse("https://ua.sinoptik.ua/погода-хуст"));
 
-        for (var report in reports) {
-          buffer.writeln(report);
-        }
-        client.sendNotice(buffer.toString());
-      });
-  client.addCommand(
-      name: "neko",
-      implementation: (List<String> args, _) async {
-        var image = await nekoFetcher.requestImageBytes();
-        if (image == null) {
+          for (var report in reports) {
+            buffer.writeln(report);
+          }
+          client.sendNotice(buffer.toString());
+        })
+    ..addCommand(
+        name: "neko",
+        implementation: (List<String> args, _) async {
+          var image = await nekoFetcher.requestImageBytes();
+          if (image == null) {
+            return;
+          }
+          Uri id = await client.uploadContent(image, filename: "image/png");
+          // TODO: Send Image method in BotClient (Should include size and hw)
+          client.sendMessage(
+              client.roomId,
+              "m.room.message",
+              client.generateUniqueTransactionId(),
+              {"msgtype": "m.image", "url": id.toString(), "body": "An image"});
+        })
+    // Usage: unban (userId)
+    ..addCommand(
+      name: "unban",
+      implementation: (List<String> args, context) async {
+        if (!client.isAdmin(context.userId)) {
           return;
         }
-        Uri id = await client.uploadContent(image, filename: "image/png");
-        // TODO: Send Image method in BotClient (Should include size and hw)
-        client.sendMessage(
-            client.roomId,
-            "m.room.message",
-            client.generateUniqueTransactionId(),
-            {"msgtype": "m.image", "url": id.toString(), "body": "An image"});
-      });
-  // Usage: unban (userId)
-  client.addCommand(
-    name: "unban",
-    implementation: (List<String> args, context) async {
-      if (!client.isAdmin(context.userId)) {
-        return;
-      }
-      if (args.isEmpty) {
-        await client.sendNotice("Вкажи кого розбанити.");
-        return;
-      }
-      var room = client.getRoomById(client.roomId);
-      await room?.unban(args[0]);
-    }, /* requiredAccess: AccessLevel.admin */
-  );
-  client.addCommand(
-      name: "users",
-      implementation: (List<String> args, _) async {
+        if (args.isEmpty) {
+          await client.sendNotice("Вкажи кого розбанити.");
+          return;
+        }
         var room = client.getRoomById(client.roomId);
-        if (room == null) return;
-        // var users = await room.requestParticipants();
-        var users = await room.loadHeroUsers();
-        StringBuffer buffer = StringBuffer();
-        buffer.writeln("=== Список Користувачів ===");
-        for (var user in users) {
-          final access = switch (user.powerLevel) {
-            100 => AccessLevel.admin,
-            50 => AccessLevel.moderator,
-            0 => AccessLevel.user,
-            _ => AccessLevel.user,
-          };
-          buffer.writeln("${user.displayName} (${user.id}) - $access");
+        await room?.unban(args[0]);
+      }, /* requiredAccess: AccessLevel.admin */
+    )
+    ..addCommand(
+        name: "users",
+        implementation: (List<String> args, _) async {
+          var room = client.getRoomById(client.roomId);
+          if (room == null) return;
+          // var users = await room.requestParticipants();
+          var users = await room.loadHeroUsers();
+          StringBuffer buffer = StringBuffer();
+          buffer.writeln("=== Список Користувачів ===");
+          for (var user in users) {
+            final access = switch (user.powerLevel) {
+              100 => AccessLevel.admin,
+              50 => AccessLevel.moderator,
+              0 => AccessLevel.user,
+              _ => AccessLevel.user,
+            };
+            buffer.writeln("${user.displayName} (${user.id}) - $access");
+          }
+          await client.sendNotice(buffer.toString());
+        })
+    ..addCommand(
+      name: "awards",
+      implementation: (List<String> args, var context) async {
+        // TODO: Cache the results
+        String? userName;
+        if (args.isEmpty) {
+          userName = parseUserName(context.userId);
+        } else {
+          String displayName = args[0];
+          userName = parseUserName(displayName) ?? displayName;
         }
+        if (userName == null) return;
+        var awards = await awardManager.getUserAwards(userName);
+        StringBuffer buffer = StringBuffer();
+        buffer.writeln("Нагороди $userName");
+        int fame = 0;
+        for (var award in awards) {
+          fame += award.credit ?? 0;
+          buffer.writeln(award.toExtendedString());
+        }
+        String attitude = switch (fame) {
+          == 0 => "Доброго вам часу",
+          <= 100 && >= 0 => "Сер, похвала вам!",
+          <= 200 && >= 0 => "Живи і жий щасливо",
+          <= 300 && >= 0 => "Wow, Wow!",
+          <= 400 && >= 0 => "Добрі люди існують!",
+          <= 500 && >= 0 => "Святий чоловік, не інакше!",
+          <= 600 && >= 0 => "Добродій!",
+          <= 700 && >= 0 => "Джентельмен!",
+          <= 800 && >= 0 => "Славно, Славно, де можна задонатити?",
+          <= 900 && >= 0 => "Слава добрій людині!",
+          <= 1000 && >= 0 => "Золото, а не чоловік!",
+          > 1000 => "Велика людина, як бог!",
+          >= -10 => "Поганий чоловік!",
+          >= -50 => "Кримінал!",
+          >= -100 => "Попереджаю: У тебе будуть проблеми!",
+          >= -200 => "Народ уб'є тебе!",
+          >= -300 => "Ситуація тут важка!",
+          >= -400 => "Партія не любить тебе!",
+          >= -500 => "Так, так. Ти помреш, дибіле!",
+          >= -600 => "Мовчи, сволото!",
+          >= -700 => "Помри, помри, помри!",
+          >= -800 => "FBI хоче побачити тебе, Чорте!",
+          >= -900 => "Бачила людей і гірше!",
+          >= -1000 => "Знаєш, я хочу ЗАБАНИТИ тебе! Ти ******** #######!",
+          >= -2000 => "ТИ! ТАК ТИ! ДУМАЄШ ЩО МОЖЕШ ВЕРШИТИ ДОЛЮ ЛЮДЕЙ?!",
+          < -2000 => "***! ***! ***!",
+          _ => "...? Пробачте, а ви існуєте?",
+        };
+        buffer.writeln("Social Credit: $fame");
+        buffer.writeln(attitude);
         await client.sendNotice(buffer.toString());
-      });
-  client.addCommand(
-    name: "awards",
-    implementation: (List<String> args, var context) async {
-      // TODO: Cache the results
-      String? userName;
-      if (args.isEmpty) {
-        userName = parseUserName(context.userId);
-      } else {
-        String displayName = args[0];
-        userName = parseUserName(displayName) ?? displayName;
-      }
-      if (userName == null) return;
-      var awards = await awardManager.getUserAwards(userName);
-      StringBuffer buffer = StringBuffer();
-      buffer.writeln("Нагороди $userName");
-      int fame = 0;
-      for (var award in awards) {
-        fame += award.credit ?? 0;
-        buffer.writeln(award.toExtendedString());
-      }
-      String attitude = switch (fame) {
-        == 0 => "Доброго вам часу",
-        <= 100 && >= 0 => "Сер, похвала вам!",
-        <= 200 && >= 0 => "Живи і жий щасливо",
-        <= 300 && >= 0 => "Wow, Wow!",
-        <= 400 && >= 0 => "Добрі люди існують!",
-        <= 500 && >= 0 => "Святий чоловік, не інакше!",
-        <= 600 && >= 0 => "Добродій!",
-        <= 700 && >= 0 => "Джентельмен!",
-        <= 800 && >= 0 => "Славно, Славно, де можна задонатити?",
-        <= 900 && >= 0 => "Слава добрій людині!",
-        <= 1000 && >= 0 => "Золото, а не чоловік!",
-        > 1000 => "Велика людина, як бог!",
-        >= -10 => "Поганий чоловік!",
-        >= -50 => "Кримінал!",
-        >= -100 => "Попереджаю: У тебе будуть проблеми!",
-        >= -200 => "Народ уб'є тебе!",
-        >= -300 => "Ситуація тут важка!",
-        >= -400 => "Партія не любить тебе!",
-        >= -500 => "Так, так. Ти помреш, дибіле!",
-        >= -600 => "Мовчи, сволото!",
-        >= -700 => "Помри, помри, помри!",
-        >= -800 => "FBI хоче побачити тебе, Чорте!",
-        >= -900 => "Бачила людей і гірше!",
-        >= -1000 => "Знаєш, я хочу ЗАБАНИТИ тебе! Ти ******** #######!",
-        >= -2000 => "ТИ! ТАК ТИ! ДУМАЄШ ЩО МОЖЕШ ВЕРШИТИ ДОЛЮ ЛЮДЕЙ?!",
-        < -2000 => "***! ***! ***!",
-        _ => "...? Пробачте, а ви існуєте?",
-      };
-      buffer.writeln("Social Credit: $fame");
-      buffer.writeln(attitude);
-      await client.sendNotice(buffer.toString());
-    },
-  );
-  client.addCommand(
-    name: "grantAward",
-    implementation: (List<String> args, context) async {
-      if (!client.isAdmin(context.userId)) {
-        return;
-      }
-      if (args.length < 2) {
-        await client.sendNotice("Мені треба всі параметри");
-        return;
-      }
-      String userId = args[0];
-      int? awardId = int.tryParse(args[1]);
-      if (awardId is! int) {
-        await client.sendNotice("awardId не правильний");
-        return;
-      }
-      Award? award = await awardManager.getAward(awardId);
-      if (award == null) return;
-      await awardManager.grantAward(userId, awardId);
-      await client.sendNotice(
-          " 🎖️ $userId нагороджується Нагородою: ${award.toBasicString()} 🎖️");
-    }, /* requiredAccess: AccessLevel.admin */
-  );
-  client.addCommand(
-      name: "listAwards",
-      implementation: (List<String> args, _) async {
-        var awards = await awardManager.listAwards();
-        await client.sendNotice(awards.join('\n'));
-      });
+      },
+    )
+    ..addCommand(
+      name: "grantAward",
+      implementation: (List<String> args, context) async {
+        if (!client.isAdmin(context.userId)) {
+          return;
+        }
+        if (args.length < 2) {
+          await client.sendNotice("Мені треба всі параметри");
+          return;
+        }
+        String userId = args[0];
+        int? awardId = int.tryParse(args[1]);
+        if (awardId is! int) {
+          await client.sendNotice("awardId не правильний");
+          return;
+        }
+        Award? award = await awardManager.getAward(awardId);
+        if (award == null) return;
+        await awardManager.grantAward(userId, awardId);
+        await client.sendNotice(
+            " 🎖️ $userId нагороджується Нагородою: ${award.toBasicString()} 🎖️");
+      }, /* requiredAccess: AccessLevel.admin */
+    )
+    ..addCommand(
+        name: "listAwards",
+        implementation: (List<String> args, _) async {
+          var awards = await awardManager.listAwards();
+          await client.sendNotice(awards.join('\n'));
+        });
 }
 
 Future<void> run() async {
   final client = await getClient();
-  await addAllCommands();
+  await addAllCommands(client);
   var keysFuture = client.encryption?.keyManager.loadAllKeys();
   await Future.wait<void>([
     client.sendNotice("Я працюю!"),
