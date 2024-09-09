@@ -2,10 +2,11 @@ import 'package:matrix/matrix.dart' show User;
 import 'package:bot/client.dart' show BotClient, AccessLevel;
 import 'package:bot/lights.dart' show Outage, EnergyParser;
 import 'package:bot/neko_images.dart' show NekoFetcher;
+import 'package:bot/cat.dart' show CatFetcher;
 import 'package:bot/database.dart' show DatabaseManager;
 import 'package:bot/awards.dart' show Award, Awards;
 import 'package:bot/weather.dart' show SinoptikParser;
-import 'package:bot/userqoutes.dart' show Quote, UserQuotes;
+import 'package:bot/userquotes.dart' show Quote, UserQuotes; // See `userquotes.dart`, not `userqoutes.dart`.
 import 'dart:io' show ProcessSignal, exit;
 
 // TODO: Turn [BotClient] to a library
@@ -15,6 +16,7 @@ import 'dart:io' show ProcessSignal, exit;
 final eParser = EnergyParser();
 final weather = SinoptikParser();
 final nekoFetcher = NekoFetcher();
+final catFetcher = CatFetcher();
 final dbManager = DatabaseManager("./fmbot.db");
 final userQuotes = UserQuotes(dbManager);
 final Awards awardManager = Awards(dbManager);
@@ -89,6 +91,7 @@ const String helpMessage = """
   !awards [UserID] -- Я відправлю список твої нагород, або зазначеного користувача
   !grantAward (UserID) (AwardID) -- Я нагороджу зазначеного користувача
   !listAwards -- Я відправлю список доступних нагород
+  !cat -- Я відправлю тобі котика :3
   """;
 
 extension on BotClient {
@@ -243,12 +246,24 @@ Future<void> addAllCommands(BotClient client) async {
           }
           Uri id = await client.uploadContent(image, filename: "image/png");
           // TODO: Send Image method in BotClient (Should include size and hw)
+          /*
           client.sendMessage(
               client.roomId,
               "m.room.message",
               client.generateUniqueTransactionId(),
               {"msgtype": "m.image", "url": id.toString(), "body": "An image"});
+          */
+          client.postImage(id.toString());
         })
+    ..addCommand(
+      name: "cat",
+      implementation: (List<String> args, context) async {
+        var image = await catFetcher.requestImageBytes();
+        if (image == null) {return;}
+        Uri id = await client.uploadContent(image, filename: "image/*");
+        client.postImage(id.toString());
+      }
+    )
     // Usage: unban (userId)
     ..addCommand(
       name: "unban",
