@@ -1,6 +1,8 @@
 import 'package:bot/database.dart' show DatabaseManager;
 import 'package:sqlite_async/sqlite_async.dart';
 
+/// Got rename'd 'cause it's user quotes, not user qoutes :D
+
 class Quote {
   final String quote;
   final String author;

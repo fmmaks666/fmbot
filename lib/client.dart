@@ -125,6 +125,20 @@ class BotClient extends Client {
         data!); // Is it okay to use ! here?
   }
 
+  Future<void> postImage(String imageId) async {
+    final type = encrypt ? "m.room.encrypted" : "m.room.message";
+    final payload = {
+      "msgtype": "m.image",
+      "url": imageId,
+      "body": "An image",
+    };
+    final data = encrypt
+        ? await encryption?.encryptGroupMessagePayload(roomId, payload)
+        : payload;
+
+    await sendMessage(roomId, type, generateUniqueTransactionId(), data!);
+  }
+
   void addCommand(
       {required String name,
       required CommandCallback implementation,
