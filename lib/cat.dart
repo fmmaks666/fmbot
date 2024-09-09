@@ -25,9 +25,9 @@ class CatFetcher {
             }
         }
         return null;
+    }
 
-        void shutdown() {
-            client.close();
-        }
+    void shutdown() {
+        client.close();
     }
 }

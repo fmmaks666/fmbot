@@ -7,6 +7,7 @@ import 'package:bot/database.dart' show DatabaseManager;
 import 'package:bot/awards.dart' show Award, Awards;
 import 'package:bot/weather.dart' show SinoptikParser;
 import 'package:bot/userquotes.dart' show Quote, UserQuotes; // See `userquotes.dart`, not `userqoutes.dart`.
+import 'package:bot/random_quote.dart' show RandomQuoteFetcher;
 import 'dart:io' show ProcessSignal, exit;
 
 // TODO: Turn [BotClient] to a library
@@ -17,6 +18,7 @@ final eParser = EnergyParser();
 final weather = SinoptikParser();
 final nekoFetcher = NekoFetcher();
 final catFetcher = CatFetcher();
+final randomQuoteFetcher = RandomQuoteFetcher();
 final dbManager = DatabaseManager("./fmbot.db");
 final userQuotes = UserQuotes(dbManager);
 final Awards awardManager = Awards(dbManager);
@@ -246,13 +248,6 @@ Future<void> addAllCommands(BotClient client) async {
           }
           Uri id = await client.uploadContent(image, filename: "image/png");
           // TODO: Send Image method in BotClient (Should include size and hw)
-          /*
-          client.sendMessage(
-              client.roomId,
-              "m.room.message",
-              client.generateUniqueTransactionId(),
-              {"msgtype": "m.image", "url": id.toString(), "body": "An image"});
-          */
           client.postImage(id.toString());
         })
     ..addCommand(
@@ -393,6 +388,12 @@ Future<void> addAllCommands(BotClient client) async {
         implementation: (_, __) async {
           final quote = await userQuotes.getRandomQuote();
           client.sendNotice(quote.toString());
+        })
+    ..addCommand(
+        name: "randomQuote",
+        implementation: (_, __) async {
+          final quote = await randomQuoteFetcher.requestRandomQuote();
+          client.sendNotice(quote.toString());
         });
 }
 
@@ -441,6 +442,8 @@ Future<void> run() async {
     eParser.shutdown();
     weather.shutdown();
     nekoFetcher.shutdown();
+    catFetcher.shutdown();
+    randomQuoteFetcher.shutdown();
     exit(0);
   });
 }
