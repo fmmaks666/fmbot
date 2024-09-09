@@ -12,9 +12,9 @@ dependencies:
   http: ^1.2.0
   intl: ^0.19.0
   logging: ^1.2.0
-  matrix: ^0.29.9
+  matrix: ^0.32.4
   olm: ^2.0.3
-  open_meteo: ^1.0.5
+  open_meteo: ^2.0.1
   path: ^1.9.0
   sqlite_async: ^0.6.1
   # path: ^1.8.0

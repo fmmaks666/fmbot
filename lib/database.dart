@@ -8,8 +8,7 @@ class DatabaseManager {
   DatabaseManager(String databasePath)
       : db = SqliteDatabase(path: databasePath);
 
-  Future<void> createTables(
-      Future<void> Function(SqliteWriteContext) task) async {
+  Future<void> execute(Future<void> Function(SqliteWriteContext) task) async {
     // TODO: Use migrations
     await db.writeTransaction(task);
   }

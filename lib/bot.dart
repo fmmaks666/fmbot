@@ -5,6 +5,7 @@ import 'package:bot/neko_images.dart' show NekoFetcher;
 import 'package:bot/database.dart' show DatabaseManager;
 import 'package:bot/awards.dart' show Award, Awards;
 import 'package:bot/weather.dart' show SinoptikParser;
+import 'package:bot/userqoutes.dart' show Quote, UserQuotes;
 import 'dart:io' show ProcessSignal, exit;
 
 // TODO: Turn [BotClient] to a library
@@ -15,6 +16,7 @@ final eParser = EnergyParser();
 final weather = SinoptikParser();
 final nekoFetcher = NekoFetcher();
 final dbManager = DatabaseManager("./fmbot.db");
+final userQuotes = UserQuotes(dbManager);
 final Awards awardManager = Awards(dbManager);
 
 String getNews() {
@@ -107,6 +109,14 @@ extension on BotClient {
           await sendNotice(data);
         });
   }
+
+  String getRandomQuote() {
+    if (customData case {"quotes": List quotes}) {
+      quotes.shuffle();
+      return quotes.first;
+    }
+    return "I don't have anything to say";
+  }
 }
 
 String? parseUserName(String userId) {
@@ -135,6 +145,11 @@ Future<void> addAllCommands(BotClient client) async {
         name: "echo",
         implementation: (List<String> args, _) async {
           await client.sendNotice(args.join(' '));
+        })
+    ..addCommand(
+        name: "quote",
+        implementation: (List<String> _, __) async {
+          await client.sendNotice(client.getRandomQuote());
         })
     ..addCommand(
         name: "light",
@@ -351,6 +366,18 @@ Future<void> addAllCommands(BotClient client) async {
         implementation: (List<String> args, _) async {
           var awards = await awardManager.listAwards();
           await client.sendNotice(awards.join('\n'));
+        })
+    ..addCommand(
+        name: "addQuote",
+        implementation: (List<String> args, context) async {
+          userQuotes.addQuote(Quote(args.join(" "), context.displayName));
+          await client.sendNotice("Я додала твою цитату");
+        })
+    ..addCommand(
+        name: "ourQuote",
+        implementation: (_, __) async {
+          final quote = await userQuotes.getRandomQuote();
+          client.sendNotice(quote.toString());
         });
 }
 
@@ -360,7 +387,7 @@ Future<void> run() async {
   var keysFuture = client.encryption?.keyManager.loadAllKeys();
   await Future.wait<void>([
     client.sendNotice("Я працюю!"),
-    dbManager.createTables(
+    dbManager.execute(
       (var tx) async {
         await tx.execute(
             "CREATE TABLE IF NOT EXISTS users(userId TEXT PRIMARY KEY, JSON awards)");

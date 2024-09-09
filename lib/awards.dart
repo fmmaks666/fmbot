@@ -47,8 +47,9 @@ class Awards {
 
   Awards(this.db);
 
+	// I bet there's a better way to handle setups
   Future<void> setup() async {
-    await db.createTables(
+    await db.execute(
       (var tx) async {
         await tx.execute(
             "CREATE TABLE IF NOT EXISTS awards(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, credit INTEGER)");
