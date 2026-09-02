@@ -20,15 +20,15 @@ class Weather {
 
 class SinoptikParser {
   final Client client;
-	static const tabsClass = ".D5LKqju5";
-	static const monthClass = ".CAXTD7\\+X";
-	static const dayClass = ".BrJ0wZrO";
-	static const weekDayClass = ".BzO81ZRx";
-	static const weatherIcoClass = ".EAadAKAr"; // Not sure whether this is the correct class
-	static const minClass = ".XyT+Rm+n";
-	static const maxClass = ".cFBF0wTW";
+	static const tabsClass = ".DMP0kolW";
+	static const monthClass = ".yQxWb1P4";
+	static const dayClass = ".RSWdP9mW";
+	static const weekDayClass = ".xM6dxfW4";
+	static const weatherIcoClass = ".bSOXy2ra"; // Not sure whether this is the correct class
+	static const minClass = ".+Ovk0iEc";
+	static const maxClass = ".+Ovk0iEc";
 	static const temperatureLabelClass = "._4skXjqhc";
-	static const temperaturesQuery = ".cFBF0wTW p:not(._4skXjqhc)";
+	static const temperaturesQuery = ".\\+Ncy59Ya p:not(.\\+Ovk0iEc)";
 
 	// Add Custom UserAgent
   SinoptikParser() : client = Client();
@@ -51,6 +51,7 @@ class SinoptikParser {
     final HtmlParser parser = HtmlParser(page);
     final document = parser.parse();
     final tabs = document.querySelector(tabsClass)?.children;
+
     if (tabs == null) return <Weather>[];
     for (Element tab in tabs) {
       //if (!tab.classes.contains("main")) continue;
